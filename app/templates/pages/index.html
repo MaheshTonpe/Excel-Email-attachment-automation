@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container flex-column d-flex align-items-center justify-content-center" style="height: 100vh;">
+  <p class="text-danger">{{message}}</p>
+  <form action="" method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div class="mb-3">
+      <label for="excelUpload" class="form-label">Upload excel</label>
+      <input name="file" type="file" class="form-control" id="excelUpload" aria-describedby="excel" accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" >
+      <div id="excel" class="form-text">Please upload valid excel file.</div>
+    </div>
+    <button type="submit" class="btn btn-primary">Submit</button>
+  </form>
+</div>
+{% endblock content %}
+{% block js %}
+  
+{% endblock js %}
