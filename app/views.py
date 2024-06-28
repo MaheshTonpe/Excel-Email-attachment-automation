@@ -40,7 +40,7 @@ def home(request):
             # step 1
             df.columns = df.columns.str.lower().str.strip().str.replace(' ', '_')
 
-            print("Columns in the DataFrame:", df.columns.tolist()) ###
+            # print("Columns in the DataFrame:", df.columns.tolist()) ###====>>> For Print Columns of Excel.
 
             required_columns = [
                 'month', 'email', 'gstin/uin', 'party_name', 'docu_type',
@@ -51,7 +51,6 @@ def home(request):
             # missing_columns = [col for col in required_columns if col not in df.columns]
             # if missing_columns:
             #     raise ValueError(f"Missing columns in the uploaded file: {', '.join(missing_columns)}")
-            
 
             cc_list = ['mandatonpe@gmail.com']
 
@@ -107,8 +106,8 @@ def home(request):
 def get_email_template(row):
 # def get_email_template(row, fiscal_year_range, fiscal_year): #for dyanamic year
 
-    today = datetime.today()
-    last_day_of_month = calendar.monthrange(today.year, today.month)[1]
+    today = datetime.today() #For getting the last date current date.
+    last_day_of_month = calendar.monthrange(today.year, today.month)[1] 
     end_date = today.replace(day=last_day_of_month).strftime('%d %B %Y')
 
     # {fiscal_year_range} and {fiscal_year}
