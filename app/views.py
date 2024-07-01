@@ -39,15 +39,13 @@ def home(request):
             df = pd.read_excel(excel)
             # step 1
             df.columns = df.columns.str.lower().str.strip().str.replace(' ', '_')
-            # df.columns = df.columns.str.lower().str.strip().str.replace(' ', '_')
-
-            # print("Columns in the DataFrame:", df.columns.tolist()) ###====>>> For Print Columns of Excel.
+            df.columns = df.columns.str.upper().str.replace('_', ' ')
 
             required_columns = [
-                'month', 'email', 'gstin/uin', 'party_name', 'docu_type',
-                'inv_no/creditnote/debit_no', 'date', 'rate', 'taxable_value',
-                'igst_amount','cgst_amount', 'sgst_amount', 'total_tax', 'place_of_supply', 'remark', 'cc_members'
-            ]###
+                'MONTH', 'EMAIL', 'GSTIN/UIN', 'PARTY NAME', 'DOCU TYPE',
+                'INV NO/CREDITNOTE/DEBIT NO', 'DATE', 'RATE', 'TAXABLE VALUE',
+                'IGST AMOUNT','CGST AMOUNT', 'SGST AMOUNT', 'TOTAL TAX', 'PLACE OF SUPPLY', 'REMARK', 'CC MEMBERS'
+            ]
 
             # missing_columns = [col for col in required_columns if col not in df.columns]
             # if missing_columns:
@@ -70,7 +68,7 @@ def home(request):
             for index, row in df.iterrows():
                 heading = [
                         "SHREE GANESH PRESS N COAT INDUSTRIES PRIVATE LIMITED.\n",
-                        f"{row['gstin/uin']}.\n"
+                        f"{row['GSTIN/UIN']}.\n"
                         "Report Name: Not in GSTR 2B.\n"
                         "April 23 to April 24.\n\n"
                         # f"{fiscal_year_range}.\n\n"
@@ -81,7 +79,7 @@ def home(request):
                 # row.to_excel('Invoice.xlsx', header=my_heads, startrow=5, startcol=3, index=False)###
 
                 # Exclude the cc_member_name column from the row
-                row_without_cc = row.drop(labels=['cc_members'])
+                row_without_cc = row.drop(labels=['CC MEMBERS'])
                 excel_buffer = row_to_excel(row_without_cc, heading)
 
                 # excel_buffer = row_to_excel(row, heading)###
@@ -94,9 +92,9 @@ def home(request):
                 message = get_email_template(row)
 
                 # Process cc_member_name to create a list of email addresses
-                cc_list = [email.strip() for email in row['cc_members'].split(',')] if pd.notna(row['cc_members']) else []
+                cc_list = [email.strip() for email in row['CC MEMBERS'].split(',')] if pd.notna(row['CC MEMBERS']) else []
 
-                email_background_worker(row['email'], message, row['party_name'], cc_list)
+                email_background_worker(row['EMAIL'], message, row['PARTY NAME'], cc_list)
                 
                 # message = get_email_template(row)
 
@@ -172,22 +170,23 @@ def row_to_excel(row, heading):
     # Create an in-memory buffer
     excel_buffer = BytesIO()
 
+    empty_rows = 3
+
     # Write the DataFrame to the buffer
     with pd.ExcelWriter(excel_buffer, engine='openpyxl') as writer:
-        # my_heads = ['sr_no', 'gst_no', 'vendor_name', 'invoice', 'tax_amt', 'mobile_no', 'email', 'remark', 'date', 'summary']
         writer.sheets['Sheet1'] = writer.book.create_sheet('Sheet1')###
         sheet = writer.sheets['Sheet1']
 
         wb = Workbook()
         ws = wb.active 
          
-        for idx, line in enumerate(heading, start=1):
+        for idx, line in enumerate(heading, start=1 + empty_rows):
             sheet.cell(row=idx, column=14, value=line.strip()).alignment = openpyxl.styles.Alignment(horizontal='center')#for making data horrizantal from vertical.
             sheet.cell(row=idx, column=14).font = Font(bold=True)
         
         fill_color = PatternFill(fill_type='solid', fgColor='00FFCC99')#=>Set color to row
         new_color = PatternFill(fill_type='solid', fgColor="FFFF00")
-        row_number = 5 #number of row
+        row_number = 4 + empty_rows #number of row
         
         # max_col = df.shape[0]
         
@@ -195,14 +194,17 @@ def row_to_excel(row, heading):
         # for col in range(1, max_col + 1):
         #     sheet.cell(row=row_number, column=6).fill = fill_color
         
-        for col in sheet.iter_rows(min_col=6, max_col=20 + df.shape[0], min_row=row_number, max_row=5):
+        for col in sheet.iter_rows(min_col=6, max_col=20 + df.shape[0], min_row=row_number, max_row=4 + empty_rows):
             for cell in col:
                 cell.fill = fill_color
 
-        for col in sheet.iter_rows(min_col=11, max_col=10 + df.shape[0],min_row=row_number, max_row=5 ):
+        for col in sheet.iter_rows(min_col=11, max_col=10 + df.shape[0],min_row=5 + empty_rows, max_row=5 + empty_rows ):
             for cell in col:
                 cell.fill = new_color
 
+        for col in sheet.iter_rows(min_col=19, max_col=18 + df.shape[0],min_row=5 + empty_rows, max_row=5 + empty_rows ):
+            for cell in col:
+                cell.fill = new_color
 
         # Define a border style
         thin_border = Border(
@@ -213,11 +215,20 @@ def row_to_excel(row, heading):
         )
 
         # Apply the border to all cells in the DataFrame
-        for row in sheet.iter_rows(min_row=1, max_row=5 + df.shape[0], min_col=6, max_col=21):
+        # for row in sheet.iter_rows(min_row=1, max_row=5 + empty_rows + df.shape[0], min_col=6, max_col=21):
+        #     for cell in row:
+        #         cell.border = thin_border
+
+
+        # Apply the border to all cells in the DataFrame and heading, skipping empty rows
+        start_border_row = 1 + empty_rows
+        end_border_row = start_border_row + len(heading) + df.shape[0] + 1
+        for row in sheet.iter_rows(min_row=start_border_row, max_row=end_border_row, min_col=6, max_col=21):
             for cell in row:
                 cell.border = thin_border
 
-        startrow = len(heading)+1
+
+        startrow = len(heading) + 1 + empty_rows
         df.to_excel(writer, index=False, startrow=startrow, startcol=5)
 
     # Seek to the beginning of the stream
