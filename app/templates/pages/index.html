@@ -2,7 +2,7 @@
 {% load static %}
 {% block content %}
 <div class="container flex-column d-flex align-items-center justify-content-center" style="height: 100vh;">
-  <img src="{% static 'media/unnamed.png' %}"  alt="zencon logo" height="110px" width="250px" class="shadow-lg p-3 mb-5 bg-body rounded">
+  <!-- <img src="{% static 'media/unnamed.png' %}"  alt="zencon logo" height="110px" width="250px" class="shadow-lg p-3 mb-5 bg-body rounded"> -->
   <p class="text-danger">{{message}}</p>
   <form action="" method="post" enctype="multipart/form-data">
     {% csrf_token %}

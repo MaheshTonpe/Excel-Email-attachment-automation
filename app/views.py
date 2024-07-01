@@ -10,7 +10,7 @@ import openpyxl
 from openpyxl import Workbook
 from openpyxl.styles import PatternFill
 from openpyxl.styles import Border, Side
-from datetime import datetime
+from datetime import datetime, timedelta
 import calendar
 
 
@@ -39,20 +39,20 @@ def home(request):
             df = pd.read_excel(excel)
             # step 1
             df.columns = df.columns.str.lower().str.strip().str.replace(' ', '_')
+            # df.columns = df.columns.str.lower().str.strip().str.replace(' ', '_')
 
             # print("Columns in the DataFrame:", df.columns.tolist()) ###====>>> For Print Columns of Excel.
 
             required_columns = [
                 'month', 'email', 'gstin/uin', 'party_name', 'docu_type',
                 'inv_no/creditnote/debit_no', 'date', 'rate', 'taxable_value',
-                'igst_amount', 'sgst_amount', 'total_tax', 'place_of_supply', 'remark'
+                'igst_amount','cgst_amount', 'sgst_amount', 'total_tax', 'place_of_supply', 'remark', 'cc_members'
             ]###
 
             # missing_columns = [col for col in required_columns if col not in df.columns]
             # if missing_columns:
             #     raise ValueError(f"Missing columns in the uploaded file: {', '.join(missing_columns)}")
 
-            cc_list = ['mandatonpe@gmail.com']
 
             # #To Calculate the current fiscal year range
             # today = datetime.today()
@@ -78,10 +78,13 @@ def home(request):
                 
                 # row.to_excel('Invoice.xlsx', header=heading)  # => proper working, but heading is not displayed in mobile devices, and downloaded file
                 
-                # my_heads = ['sr_no', 'gst_no', 'vendor_name', 'invoice', 'tax_amt', 'mobile_no', 'email', 'remark', 'date', 'summary']###
                 # row.to_excel('Invoice.xlsx', header=my_heads, startrow=5, startcol=3, index=False)###
 
-                excel_buffer = row_to_excel(row, heading)###
+                # Exclude the cc_member_name column from the row
+                row_without_cc = row.drop(labels=['cc_members'])
+                excel_buffer = row_to_excel(row_without_cc, heading)
+
+                # excel_buffer = row_to_excel(row, heading)###
                 
                 with open('invoice.xlsx', 'wb') as f:
                     f.write(excel_buffer.getbuffer())
@@ -89,7 +92,13 @@ def home(request):
                 # message = get_email_template(row, fiscal_year, fiscal_year_range)#for dynamic date
 
                 message = get_email_template(row)
+
+                # Process cc_member_name to create a list of email addresses
+                cc_list = [email.strip() for email in row['cc_members'].split(',')] if pd.notna(row['cc_members']) else []
+
                 email_background_worker(row['email'], message, row['party_name'], cc_list)
+                
+                # message = get_email_template(row)
 
 
             context["message"] = "Email sending in progress"
@@ -106,12 +115,22 @@ def home(request):
 def get_email_template(row):
 # def get_email_template(row, fiscal_year_range, fiscal_year): #for dyanamic year
 
-    today = datetime.today() #For getting the last date current date.
-    last_day_of_month = calendar.monthrange(today.year, today.month)[1] 
-    end_date = today.replace(day=last_day_of_month).strftime('%d %B %Y')
+    # today = datetime.today() #For getting the last date current date.
+    # last_day_of_month = calendar.monthrange(today.year, today.month)[1] 
+    # end_date = today.replace(day=last_day_of_month).strftime('%d %B %Y')
 
     # {fiscal_year_range} and {fiscal_year}
     
+
+    # Get today's date
+    today = datetime.today()
+
+    # Calculate the last day of the previous month
+    first_day_of_current_month = datetime(today.year, today.month, 1)
+    last_day_of_previous_month = first_day_of_current_month - timedelta(days=1)
+
+    # Format the date
+    end_date = last_day_of_previous_month.strftime('%d %B %Y')
     msg = f"""
             <html>
             <body>
@@ -120,7 +139,7 @@ def get_email_template(row):
         
             <p>During the reconciliation of <b><mark>GSTR-2B for GSTR-2B for FY 2023-2025</mark></b>, we found following discrepancies<br> 
             related to <b>invoices/ Debit Note/ Credit Note</b> not uploaded by you on the GST portal<br> 
-            during <b>.</b> Due to this we are unable to take input tax credit <br>
+            during <b>the April 23 to April 24 F.Y. 23-25.</b> Due to this we are unable to take input tax credit <br>
             of said invoices/ Debit Note/ Credit Notes.  These discrepancies have been worked out on <br>
             the basis of 2B downloaded up to <b>{end_date}</b></p>
 
@@ -134,11 +153,11 @@ def get_email_template(row):
 
             <p>In case of any doubt/ clarification please feel free to write to us.</p>
 
-            <p><b>Manesh G Sheolikar</b><br>
-            <b>Shree Ganesh Press N Coat Industries Pvt Ltd</b><br>
-            <b>Account Department</b><br>
-            <b>M-152,Waluj-Aurangabad</b><br>
-            <b>Mob-Number-9881621443</b>
+            <p><b><i>Manesh G Sheolikar</i></b><br>
+            <b><i>Shree Ganesh Press N Coat Industries Pvt Ltd</i></b><br>
+            <b><i>Account Department</i></b><br>
+            <b><i>M-152,Waluj-Aurangabad</i></b><br>
+            <b><i>Mob-Number-9881621443</i></b><br>
             <img src="cid:media/save tree.jpg" alt="Save Trees"><br>
             </p>
         </body>
@@ -163,10 +182,11 @@ def row_to_excel(row, heading):
         ws = wb.active 
          
         for idx, line in enumerate(heading, start=1):
-            sheet.cell(row=idx, column=13, value=line.strip()).alignment = openpyxl.styles.Alignment(horizontal='center')#for making data horrizantal from vertical.
-            sheet.cell(row=idx, column=13).font = Font(bold=True)
+            sheet.cell(row=idx, column=14, value=line.strip()).alignment = openpyxl.styles.Alignment(horizontal='center')#for making data horrizantal from vertical.
+            sheet.cell(row=idx, column=14).font = Font(bold=True)
         
         fill_color = PatternFill(fill_type='solid', fgColor='00FFCC99')#=>Set color to row
+        new_color = PatternFill(fill_type='solid', fgColor="FFFF00")
         row_number = 5 #number of row
         
         # max_col = df.shape[0]
@@ -175,9 +195,13 @@ def row_to_excel(row, heading):
         # for col in range(1, max_col + 1):
         #     sheet.cell(row=row_number, column=6).fill = fill_color
         
-        for col in sheet.iter_rows(min_col=6, max_col=19 + df.shape[0], min_row=row_number, max_row=5):
+        for col in sheet.iter_rows(min_col=6, max_col=20 + df.shape[0], min_row=row_number, max_row=5):
             for cell in col:
                 cell.fill = fill_color
+
+        for col in sheet.iter_rows(min_col=11, max_col=10 + df.shape[0],min_row=row_number, max_row=5 ):
+            for cell in col:
+                cell.fill = new_color
 
 
         # Define a border style
@@ -189,7 +213,7 @@ def row_to_excel(row, heading):
         )
 
         # Apply the border to all cells in the DataFrame
-        for row in sheet.iter_rows(min_row=1, max_row=5 + df.shape[0], min_col=6, max_col=20):
+        for row in sheet.iter_rows(min_row=1, max_row=5 + df.shape[0], min_col=6, max_col=21):
             for cell in row:
                 cell.border = thin_border
 
