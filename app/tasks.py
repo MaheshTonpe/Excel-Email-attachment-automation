@@ -4,7 +4,7 @@ from django.conf import settings
 
 
 @background(schedule=None)
-def email_background_worker(send_to, message, party_name, cc_list=None):
+def email_background_worker(send_to, message, party_name, cc_list=None, index=0):
     print(f'Sending email to {send_to}')
 
     subject = f"Subject: GSTR-2B RECO F.Y. 2023-2025-April-23-April-24 SGPNC-{party_name}"
@@ -18,7 +18,7 @@ def email_background_worker(send_to, message, party_name, cc_list=None):
     )
 
     # Attach the Excel data
-    email.attach_file('Invoice.xlsx')
+    email.attach_file(f'invoice-{index}.xlsx')
 
     email.content_subtype = 'html'  # Set the email to HTML
 

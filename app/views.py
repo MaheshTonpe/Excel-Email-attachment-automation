@@ -68,10 +68,9 @@ def home(request):
             for index, row in df.iterrows():
                 heading = [
                         "SHREE GANESH PRESS N COAT INDUSTRIES PRIVATE LIMITED.\n",
-                        f"{row['GSTIN/UIN']}.\n"
+                        "27AAFCS1275F1ZE.\n"
                         "Report Name: Not in GSTR 2B.\n"
                         "April 23 to April 24.\n\n"
-                        # f"{fiscal_year_range}.\n\n"
                         ]
                 
                 # row.to_excel('Invoice.xlsx', header=heading)  # => proper working, but heading is not displayed in mobile devices, and downloaded file
@@ -84,7 +83,7 @@ def home(request):
 
                 # excel_buffer = row_to_excel(row, heading)###
                 
-                with open('invoice.xlsx', 'wb') as f:
+                with open(f'invoice-{index}.xlsx', 'wb') as f:#for sending email properly with attachments to respective users according to emails of excel
                     f.write(excel_buffer.getbuffer())
 
                 # message = get_email_template(row, fiscal_year, fiscal_year_range)#for dynamic date
@@ -94,7 +93,7 @@ def home(request):
                 # Process cc_member_name to create a list of email addresses
                 cc_list = [email.strip() for email in row['CC MEMBERS'].split(',')] if pd.notna(row['CC MEMBERS']) else []
 
-                email_background_worker(row['EMAIL'], message, row['PARTY NAME'], cc_list)
+                email_background_worker(row['EMAIL'], message, row['PARTY NAME'], cc_list, index)#Index comes from the open file of invoice.xlsx index
                 
                 # message = get_email_template(row)
 
@@ -128,7 +127,7 @@ def get_email_template(row):
     last_day_of_previous_month = first_day_of_current_month - timedelta(days=1)
 
     # Format the date
-    end_date = last_day_of_previous_month.strftime('%d %B %Y')
+    # end_date = last_day_of_previous_month.strftime('%d %B %Y')
     msg = f"""
             <html>
             <body>
@@ -139,7 +138,7 @@ def get_email_template(row):
             related to <b>invoices/ Debit Note/ Credit Note</b> not uploaded by you on the GST portal<br> 
             during <b>the April 23 to April 24 F.Y. 23-25.</b> Due to this we are unable to take input tax credit <br>
             of said invoices/ Debit Note/ Credit Notes.  These discrepancies have been worked out on <br>
-            the basis of 2B downloaded up to <b>{end_date}</b></p>
+            the basis of 2B downloaded up to <b>31 May 2024</b></p>
 
             <p>Request to please resolve these issues and submit necessary documents at the earliest for <br>
             said discrepancies as otherwise any reversal of Input tax credit on account of mismatch in <br>
